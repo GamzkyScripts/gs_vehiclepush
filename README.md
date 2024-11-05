@@ -2,7 +2,7 @@
 
 #### ⭐ Check out our other resources on [Tebex](https://gamzky-scripts.tebex.io/) or in our [Discord](https://discord.com/invite/sjFP3HrWc3).
 
-#### 📼 Preview video: Coming soon...
+#### 📼 Preview video: [Streamable](https://streamable.com/cg6535)
 
 This vehicle push script allows players to push vehicles in the game, useful when they are undrivable or stuck.
 
