@@ -1,4 +1,4 @@
-# Weapon Carry Script
+# Vehicle Push Script
 
 #### ⭐ Check out our other resources on [gamzkystore.com](https://gamzkystore.com/) or in our [Discord](https://discord.com/invite/sjFP3HrWc3).
 
@@ -7,7 +7,6 @@
 This vehicle push script allows players to push vehicles in the game, useful when they are undrivable or stuck.
 
 ## Features
-
 -   Framework indepenent. So it works for any framework like ESX, QBCore, etc.
 -   Vehicles can only be pushed if their engine health is below a certain threshold (Configurable).
 -   Configurable controls: Primary push key (SHIFT) and secondary push key (E) can be adjusted in the `config.lua`.
