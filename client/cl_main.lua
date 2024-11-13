@@ -1,4 +1,5 @@
 local closestVehicle, closestDistance, closestCoords
+local isPushing = false
 
 CreateThread(function()
     while true do
@@ -17,94 +18,79 @@ CreateThread(function()
     end
 end)
 
+function InitTargets()
+    exports.ox_target:addGlobalVehicle({
+        {
+            label = Config.target.startLabel,
+            icon = Config.target.icon,
+            distance = 2.0,
+            canInteract = function(entity, distance, coords, name)
+                if isPushing then
+                    return false
+                end
+
+                local ped = PlayerPedId()
+                local distanceFront, distanceBack = IsPlayerInFrontOrBack(ped, entity)
+
+                if (distanceFront > 1.2) and (distanceBack > 1.2) then
+                    return false
+                end
+
+                return IsVehiclePushable(entity)
+            end,
+            onSelect = function(data)
+                local ped = PlayerPedId()
+                local distanceFront, distanceBack, isVehicleInFront = IsPlayerInFrontOrBack(ped, data.entity)
+                isPushing = true
+                StartPushingVehicle(data.entity, isVehicleInFront)
+            end
+        },
+        {
+            label = Config.target.stopLabel,
+            icon = Config.target.icon,
+            distance = 2.0,
+            canInteract = function(entity, distance, coords, name)
+                return isPushing
+            end,
+            onSelect = function(data)
+                isPushing = false
+            end
+        }
+    })
+end
+
 CreateThread(function()
+    if Config.target.enable then
+        InitTargets()
+        return
+    end
+
     while true do
         Wait(0)
 
         local ped = PlayerPedId()
         if not IsPedInAnyVehicle(ped, true) then
-            local pedCoords = GetEntityCoords(ped, true)
-
             if closestVehicle and (closestDistance < 10.0) and IsVehiclePushable(closestVehicle) then
-                local dimension = GetModelDimensions(GetEntityModel(closestVehicle))
-
-                local frontCoords = GetOffsetFromEntityInWorldCoords(closestVehicle, 0.0, dimension.y, 0.0)
-                local backCoords = GetOffsetFromEntityInWorldCoords(closestVehicle, 0.0, dimension.y * -1, 0.0)
-
-                local distanceFront = #(pedCoords - frontCoords)
-                local distanceBack = #(pedCoords - backCoords)
+                local distanceFront, distanceBack, isVehicleInFront = IsPlayerInFrontOrBack(ped, closestVehicle)
 
                 local textCoords
-                if (distanceFront > distanceBack) then
-                    textCoords = GetOffsetFromEntityInWorldCoords(closestVehicle, 0.0, dimension.y * -1, 0.5)
+                if isVehicleInFront then
+                    textCoords = GetOffsetFromEntityInWorldCoords(closestVehicle, 0.0,
+                        GetModelDimensions(GetEntityModel(closestVehicle)).y * -1, 0.5)
                 else
-                    textCoords = GetOffsetFromEntityInWorldCoords(closestVehicle, 0.0, dimension.y, 0.5)
+                    textCoords = GetOffsetFromEntityInWorldCoords(closestVehicle, 0.0,
+                        GetModelDimensions(GetEntityModel(closestVehicle)).y, 0.5)
                 end
 
                 if (distanceFront < 4.0) or (distanceBack < 4.0) then
                     local text = Config.pushLabel
                     if (distanceFront < 1.2) or (distanceBack < 1.2) then
-                        text = ('[~b~%s + %s~w~] %s'):format(Config.pushKeyPrimary.label, Config.pushKeySecondary.label, Config.pushLabel)
+                        text = ('[~b~%s + %s~w~] %s'):format(Config.pushKeyPrimary.label, Config.pushKeySecondary.label,
+                            Config.pushLabel)
+
                         if IsControlPressed(0, Config.pushKeyPrimary.index) and IsControlPressed(0, Config.pushKeySecondary.index) then
                             if NetworkHasControlOfEntity(closestVehicle) then
-                                local isVehicleInFront = false
-                                if distanceBack < distanceFront then
-                                    AttachEntityToEntity(
-                                        ped, closestVehicle, 0, 0.0, dimension.y * -1 + 0.1, dimension.z + 1.0, 0.0, 0.0, 180.0, 0.0, false, false, true, false, true
-                                    )
-                                    isVehicleInFront = true
-                                else
-                                    AttachEntityToEntity(
-                                        ped, closestVehicle, 0, 0.0, dimension.y - 0.3, dimension.z + 1.0, 0.0, 0.0, 0.0, 0.0, false, false, true, false, true
-                                    )
-                                end
-
-                                lib.requestAnimDict(Config.animation.dict)
-                                TaskPlayAnim(
-                                    ped, Config.animation.dict, Config.animation.anim, 2.0, -8.0, -1, 35, 0, 0, 0, 0
-                                )
-
-                                Wait(200)
-
-                                while true do
-                                    Wait(0)
-
-                                    for i = 1, #Config.disabledControls do
-                                        DisableControlAction(0, Config.disabledControls[i], true)
-                                    end
-
-                                    if IsControlJustPressed(0, 34) then -- A
-                                        local wheelAngle = GetVehicleWheelSteeringAngle(closestVehicle)
-                                        if (wheelAngle < -0.1) then
-                                            SetVehicleSteeringAngle(closestVehicle, 0.0)
-                                        else
-                                            SetVehicleSteeringAngle(closestVehicle, 30.0)
-                                        end
-                                    end
-
-                                    if IsControlJustPressed(0, 35) then -- D
-                                        local wheelAngle = GetVehicleWheelSteeringAngle(closestVehicle)
-                                        if (wheelAngle > 0.1) then
-                                            SetVehicleSteeringAngle(closestVehicle, 0.0)
-                                        else
-                                            SetVehicleSteeringAngle(closestVehicle, -30.0)
-                                        end
-                                    end
-
-                                    if isVehicleInFront then
-                                        SetVehicleForwardSpeed(closestVehicle, -1.0)
-                                    else
-                                        SetVehicleForwardSpeed(closestVehicle, 1.0)
-                                    end
-
-                                    -- If the player is not pressing the button anymore, stop pushing the vehicle
-                                    if not IsControlPressed(0, Config.pushKeySecondary.index) or not IsEntityAttachedToEntity(ped, closestVehicle) then
-                                        SetVehicleForwardSpeed(closestVehicle, 0.0)
-                                        DetachEntity(ped, false, false)
-                                        StopAnimTask(ped, Config.animation.dict, Config.animation.anim, 2.0)
-                                        break
-                                    end
-                                end
+                                StartPushingVehicle(closestVehicle, isVehicleInFront)
                             else
                                 Notify('~r~Enter the vehicle first to gain control of the vehicle.')
                             end
@@ -124,8 +110,90 @@ CreateThread(function()
     end
 end)
 
+function IsPlayerInFrontOrBack(ped, vehicle)
+    local pedCoords = GetEntityCoords(ped, true)
+
+    local dimension = GetModelDimensions(GetEntityModel(vehicle))
+    local frontCoords = GetOffsetFromEntityInWorldCoords(vehicle, 0.0, dimension.y, 0.0)
+    local backCoords = GetOffsetFromEntityInWorldCoords(vehicle, 0.0, dimension.y * -1, 0.0)
+
+    local distanceFront = #(pedCoords - frontCoords)
+    local distanceBack = #(pedCoords - backCoords)
+
+    return distanceFront, distanceBack, distanceBack < distanceFront
+end
+
+function StartPushingVehicle(vehicle, isVehicleInFront)
+    local ped = PlayerPedId()
+    local dimension = GetModelDimensions(GetEntityModel(vehicle))
+    if isVehicleInFront then
+        AttachEntityToEntity(
+            ped, vehicle, 0, 0.0, dimension.y * -1 + 0.1, dimension.z + 1.0, 0.0, 0.0, 180.0, 0.0, false, false, true,
+            false, true
+        )
+    else
+        AttachEntityToEntity(
+            ped, vehicle, 0, 0.0, dimension.y - 0.3, dimension.z + 1.0, 0.0, 0.0, 0.0, 0.0, false, false, true, false,
+            true
+        )
+    end
+
+    lib.requestAnimDict(Config.animation.dict)
+    TaskPlayAnim(
+        ped, Config.animation.dict, Config.animation.anim, 2.0, -8.0, -1, 35, 0, 0, 0, 0
+    )
+
+    Wait(200)
+
+    while true do
+        Wait(0)
+
+        for i = 1, #Config.disabledControls do
+            DisableControlAction(0, Config.disabledControls[i], true)
+        end
+
+        if IsControlJustPressed(0, 34) then -- A
+            local wheelAngle = GetVehicleWheelSteeringAngle(vehicle)
+            if (wheelAngle < -0.1) then
+                SetVehicleSteeringAngle(vehicle, 0.0)
+            else
+                SetVehicleSteeringAngle(vehicle, 30.0)
+            end
+        end
+
+        if IsControlJustPressed(0, 35) then -- D
+            local wheelAngle = GetVehicleWheelSteeringAngle(vehicle)
+            if (wheelAngle > 0.1) then
+                SetVehicleSteeringAngle(vehicle, 0.0)
+            else
+                SetVehicleSteeringAngle(vehicle, -30.0)
+            end
+        end
+
+        if isVehicleInFront then
+            SetVehicleForwardSpeed(vehicle, -1.0)
+        else
+            SetVehicleForwardSpeed(vehicle, 1.0)
+        end
+
+        local shouldStopPushing = false
+        if Config.target.enable then
+            shouldStopPushing = not isPushing or not IsEntityAttachedToEntity(ped, vehicle)
+        else
+            shouldStopPushing = not IsControlPressed(0, Config.pushKeySecondary.index) or
+            not IsEntityAttachedToEntity(ped, vehicle)
+        end
+        if shouldStopPushing then
+            SetVehicleForwardSpeed(vehicle, 0.0)
+            DetachEntity(ped, false, false)
+            StopAnimTask(ped, Config.animation.dict, Config.animation.anim, 2.0)
+            break
+        end
+    end
+end
+
 function IsVehiclePushable(vehicle)
-    if not IsVehicleSeatFree(closestVehicle, -1) then
+    if not IsVehicleSeatFree(vehicle, -1) then
         return false
     end
 

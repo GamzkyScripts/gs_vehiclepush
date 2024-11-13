@@ -13,6 +13,8 @@ This vehicle push script allows players to push vehicles in the game, useful whe
 -   Prevents pushing of vehicle types that are unrealistic to push, such as boats, helicopters, planes, and trains, specified in `config.lua`.
 -   Animation support: Players perform a realistic animation when pushing vehicles.
 -   Configurable disabled controls while pushing, ensuring players can't perform other actions like firing a weapon or jumping.
+-   Optionally enable interactions with ox_target (or any other targeting script, but you'll have to add it yourself).
 
 #### Dependencies
 - The only dependency is [ox_lib](https://github.com/overextended/ox_lib).
+- If you want to use the targeting feature, you'll need to add [ox_target](https://github.com/overextended/ox_target) to your server.

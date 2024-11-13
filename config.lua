@@ -1,4 +1,11 @@
 Config = {
+    target = {
+        enable = true,
+        startLabel = 'Push Vehicle',
+        stopLabel = 'Stop Pushing',
+        icon = 'fas fa-hand-paper',
+    },
+
     -- More information on keys: https://docs.fivem.net/docs/game-references/controls/#controls
     pushKeyPrimary = { index = 21, label = 'SHIFT' },
     pushKeySecondary = { index = 38, label = 'E' },

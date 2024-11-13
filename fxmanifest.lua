@@ -3,7 +3,7 @@ game 'gta5'
 
 author 'Gamzky'
 description 'Script to that allows you to push vehicles'
-version '1.0.0'
+version '1.1.0'
 
 lua54 'yes'
 
