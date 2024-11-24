@@ -113,7 +113,12 @@ end)
 function IsPlayerInFrontOrBack(ped, vehicle)
     local pedCoords = GetEntityCoords(ped, true)
 
-    local dimension = GetModelDimensions(GetEntityModel(vehicle))
+    local success, entityModel = pcall(GetEntityModel, vehicle)
+    if not success then
+        return 999, 999, false
+    end
+
+    local dimension = GetModelDimensions(entityModel)
     local frontCoords = GetOffsetFromEntityInWorldCoords(vehicle, 0.0, dimension.y, 0.0)
     local backCoords = GetOffsetFromEntityInWorldCoords(vehicle, 0.0, dimension.y * -1, 0.0)
 
@@ -181,7 +186,7 @@ function StartPushingVehicle(vehicle, isVehicleInFront)
             shouldStopPushing = not isPushing or not IsEntityAttachedToEntity(ped, vehicle)
         else
             shouldStopPushing = not IsControlPressed(0, Config.pushKeySecondary.index) or
-            not IsEntityAttachedToEntity(ped, vehicle)
+                not IsEntityAttachedToEntity(ped, vehicle)
         end
         if shouldStopPushing then
             SetVehicleForwardSpeed(vehicle, 0.0)
