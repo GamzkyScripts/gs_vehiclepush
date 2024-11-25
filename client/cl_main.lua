@@ -29,6 +29,10 @@ function InitTargets()
                     return false
                 end
 
+                if NetworkGetEntityIsNetworked(entity) then
+                    return false
+                end
+
                 local ped = PlayerPedId()
                 local distanceFront, distanceBack = IsPlayerInFrontOrBack(ped, entity)
 
